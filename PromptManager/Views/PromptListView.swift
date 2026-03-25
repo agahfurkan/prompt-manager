@@ -10,6 +10,10 @@ struct PromptListView: View {
     var selectedCommand: String?
     @Binding var showingNewPrompt: Bool
     
+    @State private var variableSheetPrompt: Prompt?
+    @State private var variableSheetAction: VariableFillSheet.Action = .run
+    @State private var showVariableSheet = false
+    
     private var filteredPrompts: [Prompt] {
         var result = allPrompts
         
@@ -91,16 +95,34 @@ struct PromptListView: View {
                         .tag(prompt)
                         .contextMenu {
                             Button("Copy Command") {
-                                CommandExecutor.copyToClipboard(prompt.fullCommand)
+                                if prompt.hasVariables {
+                                    variableSheetPrompt = prompt
+                                    variableSheetAction = .copyCommand
+                                    showVariableSheet = true
+                                } else {
+                                    CommandExecutor.copyToClipboard(prompt.fullCommand)
+                                }
                             }
                             Button("Copy Prompt Only") {
-                                CommandExecutor.copyToClipboard(prompt.body)
+                                if prompt.hasVariables {
+                                    variableSheetPrompt = prompt
+                                    variableSheetAction = .copyPromptOnly
+                                    showVariableSheet = true
+                                } else {
+                                    CommandExecutor.copyToClipboard(prompt.body)
+                                }
                             }
                             Divider()
                             Button("Run in Terminal") {
-                                CommandExecutor.runInTerminal(prompt.fullCommand)
-                                prompt.usageCount += 1
-                                prompt.updatedAt = Date()
+                                if prompt.hasVariables {
+                                    variableSheetPrompt = prompt
+                                    variableSheetAction = .run
+                                    showVariableSheet = true
+                                } else {
+                                    CommandExecutor.runInTerminal(prompt.fullCommand)
+                                    prompt.usageCount += 1
+                                    prompt.updatedAt = Date()
+                                }
                             }
                             Divider()
                             Button(prompt.isFavorite ? "Unfavorite" : "Favorite") {
@@ -122,6 +144,32 @@ struct PromptListView: View {
                         showingNewPrompt = false
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showVariableSheet) {
+            if let prompt = variableSheetPrompt {
+                VariableFillSheet(
+                    prompt: prompt,
+                    action: variableSheetAction,
+                    onSubmit: { resolvedText in
+                        showVariableSheet = false
+                        switch variableSheetAction {
+                        case .run:
+                            CommandExecutor.runInTerminal(resolvedText)
+                            prompt.usageCount += 1
+                            prompt.updatedAt = Date()
+                        case .copyCommand:
+                            CommandExecutor.copyToClipboard(resolvedText)
+                        case .copyPromptOnly:
+                            CommandExecutor.copyToClipboard(resolvedText)
+                        }
+                        variableSheetPrompt = nil
+                    },
+                    onCancel: {
+                        showVariableSheet = false
+                        variableSheetPrompt = nil
+                    }
+                )
             }
         }
     }

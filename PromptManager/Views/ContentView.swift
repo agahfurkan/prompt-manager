@@ -57,12 +57,18 @@ struct NewPromptView: View {
     @State private var selectedCommandTemplate: CommandTemplate = CommandTemplate.builtIn[0]
     @State private var customCommand = ""
     @State private var selectedCategory = "General"
+    @State private var newVariableName = ""
+    @State private var showAddVariable = false
     
     private var resolvedCommand: String {
         if selectedCommandTemplate.name == "Custom" {
             return customCommand
         }
         return selectedCommandTemplate.command
+    }
+    
+    private var detectedVariables: [String] {
+        PromptVariableParser.extractVariables(from: body_)
     }
     
     var body: some View {
@@ -149,11 +155,63 @@ struct NewPromptView: View {
                     .frame(width: 200)
                 }
                 
-                // Prompt Body
+                // Prompt Body with variable support
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Prompt")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text("Prompt")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        // Insert variable button
+                        Button {
+                            showAddVariable.toggle()
+                        } label: {
+                            Label("Insert Variable", systemImage: "curlybraces")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.orange)
+                    }
+                    
+                    // Variable hint
+                    Text("Use {{variable_name}} for dynamic values filled at run time")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    
+                    // Add variable inline
+                    if showAddVariable {
+                        HStack(spacing: 8) {
+                            Image(systemName: "curlybraces")
+                                .foregroundStyle(.orange)
+                            TextField("Variable name (e.g. filename)", text: $newVariableName)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(.body, design: .monospaced))
+                                .onSubmit {
+                                    insertVariable()
+                                }
+                            Button("Insert") {
+                                insertVariable()
+                            }
+                            .disabled(newVariableName.trimmingCharacters(in: .whitespaces).isEmpty)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            
+                            Button {
+                                showAddVariable = false
+                                newVariableName = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(8)
+                        .background(Color.orange.opacity(0.08))
+                        .cornerRadius(8)
+                    }
+                    
                     TextEditor(text: $body_)
                         .font(.body.monospaced())
                         .frame(minHeight: 180)
@@ -164,21 +222,29 @@ struct NewPromptView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                         )
+                    
+                    // Detected variables chips
+                    if !detectedVariables.isEmpty {
+                        VariableChipsView(variables: detectedVariables) { varName in
+                            body_.append(" {{\(varName)}}")
+                        }
+                    }
                 }
                 
                 // Preview
                 if !body_.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Preview")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("\(resolvedCommand) \"\(body_)\"")
-                            .font(.system(.body, design: .monospaced))
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.black.opacity(0.8))
-                            .foregroundStyle(.green)
-                            .cornerRadius(8)
+                        HStack {
+                            Text("Preview")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                            if !detectedVariables.isEmpty {
+                                Text("(\(detectedVariables.count) variable\(detectedVariables.count == 1 ? "" : "s"))")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                        HighlightedCommandPreview(text: "\(resolvedCommand) \"\(body_)\"")
                     }
                 }
                 
@@ -202,6 +268,15 @@ struct NewPromptView: View {
             }
             .padding(24)
         }
+        .animation(.easeInOut(duration: 0.2), value: showAddVariable)
+    }
+    
+    private func insertVariable() {
+        let name = newVariableName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        body_.append(" {{\(name)}}")
+        newVariableName = ""
+        showAddVariable = false
     }
     
     private func savePrompt() {

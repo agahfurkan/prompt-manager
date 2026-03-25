@@ -11,14 +11,21 @@ struct CommandExecutor {
         pasteboard.setString(text, forType: .string)
     }
     
-    /// Open Terminal.app and run the command
+    /// Open Terminal.app (or iTerm) and run the command.
+    ///
+    /// Strategy: save the command to the clipboard, then use AppleScript to
+    /// paste and execute it in the terminal. This avoids all AppleScript
+    /// string-escaping issues with newlines, quotes, backslashes, etc.
     static func runInTerminal(_ command: String) {
         let terminalApp = UserDefaults.standard.string(forKey: "terminalApp") ?? "Terminal"
         
-        // Escape the command for AppleScript
-        let escaped = command
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        // Save current clipboard so we can restore it
+        let pasteboard = NSPasteboard.general
+        let previousContents = pasteboard.string(forType: .string)
+        
+        // Put the command on the clipboard
+        pasteboard.clearContents()
+        pasteboard.setString(command, forType: .string)
         
         let script: String
         
@@ -30,7 +37,8 @@ struct CommandExecutor {
                     create window with default profile
                 end if
                 tell current session of current window
-                    write text "\(escaped)"
+                    set theCommand to the clipboard
+                    write text theCommand
                 end tell
             end tell
             """
@@ -38,10 +46,11 @@ struct CommandExecutor {
             script = """
             tell application "Terminal"
                 activate
+                set theCommand to the clipboard
                 if (count of windows) = 0 then
-                    do script "\(escaped)"
+                    do script theCommand
                 else
-                    do script "\(escaped)" in front window
+                    do script theCommand in front window
                 end if
             end tell
             """
@@ -52,6 +61,15 @@ struct CommandExecutor {
             appleScript.executeAndReturnError(&error)
             if let error = error {
                 print("AppleScript error: \(error)")
+            }
+        }
+        
+        // Restore previous clipboard after a short delay
+        // (give Terminal time to read the clipboard)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let prev = previousContents {
+                pasteboard.clearContents()
+                pasteboard.setString(prev, forType: .string)
             }
         }
     }

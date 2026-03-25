@@ -31,13 +31,47 @@ final class Prompt {
         self.usageCount = 0
     }
     
-    /// Returns the full terminal command string
+    // MARK: - Variables
+    
+    /// All unique `{{variable}}` names found in the prompt body, in order.
+    var variables: [String] {
+        PromptVariableParser.extractVariables(from: body)
+    }
+    
+    /// Whether this prompt contains any `{{variable}}` placeholders.
+    var hasVariables: Bool {
+        PromptVariableParser.hasVariables(in: body)
+    }
+    
+    /// Resolve the prompt body by replacing `{{variable}}` with provided values.
+    func resolvedBody(with values: [String: String]) -> String {
+        PromptVariableParser.resolve(body, with: values)
+    }
+    
+    // MARK: - Command generation
+    
+    /// Returns the full terminal command string (raw, with placeholders intact).
+    /// Simply concatenates command + body. If body is empty, returns just the command.
     var fullCommand: String {
-        "\(command) \"\(body)\""
+        let trimmedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedBody.isEmpty {
+            return command
+        }
+        return "\(command) \(body)"
+    }
+    
+    /// Returns the full command with variables replaced.
+    func resolvedCommand(with values: [String: String]) -> String {
+        let resolved = resolvedBody(with: values)
+        let trimmedResolved = resolved.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedResolved.isEmpty {
+            return command
+        }
+        return "\(command) \(resolved)"
     }
     
     /// Returns just the command with prompt for clipboard
     var clipboardText: String {
-        "\(command) \"\(body)\""
+        fullCommand
     }
 }

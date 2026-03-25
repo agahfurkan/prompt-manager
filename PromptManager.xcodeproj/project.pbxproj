@@ -19,6 +19,8 @@
 		AA000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000010; };
 		AA000011 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011; };
 		AA000012 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012; };
+		AA000013 /* PromptVariableParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013; };
+		AA000014 /* VariableFillSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +37,8 @@
 		AB000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB000011 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		AB000012 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB000013 /* PromptVariableParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptVariableParser.swift; sourceTree = "<group>"; };
+		AB000014 /* VariableFillSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableFillSheet.swift; sourceTree = "<group>"; };
 		AB000020 /* PromptManager.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PromptManager.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -75,6 +79,7 @@
 			children = (
 				AB000002 /* Prompt.swift */,
 				AB000003 /* CommandTemplate.swift */,
+				AB000013 /* PromptVariableParser.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -89,6 +94,7 @@
 				AB000008 /* PromptRowView.swift */,
 				AB000011 /* EmptyStateView.swift */,
 				AB000012 /* SettingsView.swift */,
+				AB000014 /* VariableFillSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -189,6 +195,8 @@
 				AA000009 /* CommandExecutor.swift in Sources */,
 				AA000011 /* EmptyStateView.swift in Sources */,
 				AA000012 /* SettingsView.swift in Sources */,
+				AA000013 /* PromptVariableParser.swift in Sources */,
+				AA000014 /* VariableFillSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

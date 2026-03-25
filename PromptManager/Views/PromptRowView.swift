@@ -51,6 +51,21 @@ struct PromptRowView: View {
                 .foregroundStyle(.purple)
                 .cornerRadius(4)
                 
+                // Variable badge
+                if prompt.hasVariables {
+                    HStack(spacing: 3) {
+                        Image(systemName: "curlybraces")
+                            .font(.system(size: 9))
+                        Text("\(prompt.variables.count) var\(prompt.variables.count == 1 ? "" : "s")")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.12))
+                    .foregroundStyle(.orange)
+                    .cornerRadius(4)
+                }
+                
                 Spacer()
                 
                 if prompt.usageCount > 0 {
