@@ -11,21 +11,22 @@ struct CommandExecutor {
         pasteboard.setString(text, forType: .string)
     }
     
-    /// Open Terminal.app (or iTerm) and run the command.
-    ///
-    /// Strategy: save the command to the clipboard, then use AppleScript to
-    /// paste and execute it in the terminal. This avoids all AppleScript
-    /// string-escaping issues with newlines, quotes, backslashes, etc.
+    /// Escape a string for safe embedding inside an AppleScript double-quoted string.
+    /// Handles: backslash, double-quote, newlines, tabs, and carriage returns.
+    private static func escapeForAppleScript(_ text: String) -> String {
+        var result = text
+        result = result.replacingOccurrences(of: "\\", with: "\\\\")
+        result = result.replacingOccurrences(of: "\"", with: "\\\"")
+        result = result.replacingOccurrences(of: "\n", with: "\\n")
+        result = result.replacingOccurrences(of: "\r", with: "\\r")
+        result = result.replacingOccurrences(of: "\t", with: "\\t")
+        return result
+    }
+    
+    /// Open Terminal.app (or iTerm) and run the command via AppleScript.
     static func runInTerminal(_ command: String) {
         let terminalApp = UserDefaults.standard.string(forKey: "terminalApp") ?? "Terminal"
-        
-        // Save current clipboard so we can restore it
-        let pasteboard = NSPasteboard.general
-        let previousContents = pasteboard.string(forType: .string)
-        
-        // Put the command on the clipboard
-        pasteboard.clearContents()
-        pasteboard.setString(command, forType: .string)
+        let escaped = escapeForAppleScript(command)
         
         let script: String
         
@@ -33,12 +34,9 @@ struct CommandExecutor {
             script = """
             tell application "iTerm"
                 activate
-                if (count of windows) = 0 then
-                    create window with default profile
-                end if
-                tell current session of current window
-                    set theCommand to the clipboard
-                    write text theCommand
+                set newWindow to (create window with default profile)
+                tell current session of newWindow
+                    write text "\(escaped)"
                 end tell
             end tell
             """
@@ -46,31 +44,17 @@ struct CommandExecutor {
             script = """
             tell application "Terminal"
                 activate
-                set theCommand to the clipboard
-                if (count of windows) = 0 then
-                    do script theCommand
-                else
-                    do script theCommand in front window
-                end if
+                do script "\(escaped)"
             end tell
             """
         }
         
+        var error: NSDictionary?
         if let appleScript = NSAppleScript(source: script) {
-            var error: NSDictionary?
             appleScript.executeAndReturnError(&error)
-            if let error = error {
-                print("AppleScript error: \(error)")
-            }
         }
-        
-        // Restore previous clipboard after a short delay
-        // (give Terminal time to read the clipboard)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if let prev = previousContents {
-                pasteboard.clearContents()
-                pasteboard.setString(prev, forType: .string)
-            }
+        if let error = error {
+            print("AppleScript error: \(error)")
         }
     }
     
